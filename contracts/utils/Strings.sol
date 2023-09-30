@@ -11,6 +11,7 @@ import {SignedMath} from "./math/SignedMath.sol";
  */
 library Strings {
     bytes16 private constant HEX_DIGITS = "0123456789abcdef";
+    bytes16 private constant HEX_CAPITAL = "0123456789ABCDEF";
     uint8 private constant ADDRESS_LENGTH = 20;
 
     /**
@@ -90,5 +91,38 @@ library Strings {
      */
     function equal(string memory a, string memory b) internal pure returns (bool) {
         return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));
+    }
+
+
+    /**
+     * @dev Returns the checksummed hex representation of the address according to EIP-55.
+     */
+    function toChecksumHexString(address addr) public pure returns (string memory) {
+        bytes memory lowercase = new bytes(40);
+        uint160 currentAddressValue = uint160(addr);
+        for (uint i = 40; i > 0; --i) {
+            lowercase[i-1] = HEX_DIGITS[currentAddressValue & 0xf];
+            currentAddressValue >>= 4;
+        }
+        bytes32 hashed_addr = keccak256(abi.encodePacked(lowercase));
+
+        bytes memory buffer = new bytes(42);
+        buffer[0] = '0';
+        buffer[1] = 'x';
+
+        uint160 addrValue = uint160(addr);
+        uint160 hashValue = uint160(bytes20(hashed_addr));
+        for (uint i = 41; i>1; --i) {
+            uint hashIndex = hashValue & 0xf;
+            if (hashIndex > 7) {
+                buffer[i] = HEX_CAPITAL[addrValue & 0xf];
+            }
+            else {
+                buffer[i] = HEX_DIGITS[addrValue & 0xf];
+            }
+            addrValue >>= 4;
+            hashValue >>= 4;
+        }
+        return string(abi.encodePacked(buffer));
     }
 }
